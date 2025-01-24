@@ -1,0 +1,84 @@
+name: CI/CD Pipeline
+
+# Trigger the workflow on push to the main branch or pull request to the main branch
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# Jobs to run
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18 # Use the latest LTS version of Node.js
+          cache: "npm" # Cache npm dependencies to speed up the workflow
+
+      # Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Run ESLint for linting
+      - name: Run ESLint
+        run: npm run lint
+
+      # Run Jest for testing
+      - name: Run tests
+        run: npm test
+
+      # Build the project
+      - name: Build project
+        run: npm run build
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: lint-test-build # Ensure the lint-test-build job succeeds before deploying
+    steps:
+      # Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: "npm"
+
+      # Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Build the project
+      - name: Build project
+        run: npm run build
+
+      # Deploy to Vercel
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }} # Add your Vercel token in GitHub Secrets
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }} # Add your Vercel Org ID in GitHub Secrets
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }} # Add your Vercel Project ID in GitHub Secrets
+
+          # Deploy to Netlify
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v2
+        with:
+          publish-dir: "./build" # The build directory for Create React App
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          netlify-auth-token: ${{ secrets.NETLIFY_AUTH_TOKEN }} # Add your Netlify auth token in GitHub Secrets
+          netlify-site-id: ${{ secrets.NETLIFY_SITE_ID }} # Add your Netlify site ID in GitHub Secrets
